@@ -1,0 +1,17 @@
+-- some data about the container
+docker run -d \
+  --name tracemob-db \
+  -p 5433:5432 \
+  -e POSTGRES_USER=tracemob \
+  -e POSTGRES_PASSWORD=tracemob_secret \
+  -e POSTGRES_DB=tracemob \
+  -v tracemob_pgdata:/var/lib/postgresql \
+  mobilitydb/mobilitydb:latest
+
+
+-- accessing the db inside the container
+docker exec -it tracemob-db psql -U tracemob -d tracemob
+
+
+-- start/stop container
+docker start/stop tracemob-db
