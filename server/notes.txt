@@ -12,6 +12,15 @@ docker run -d \
 -- accessing the db inside the container
 docker exec -it tracemob-db psql -U tracemob -d tracemob
 
+-- i altered the time zone insde tracemob db to turkey with this
+ALTER DATABASE tracemob SET timezone TO 'Europe/Istanbul';
+
 
 -- start/stop container
 docker start/stop tracemob-db
+
+
+-- send an ingest request 
+curl -X POST http://localhost:3000/api/location \
+  -H "Content-Type: application/json" \
+  -d '{"_type":"location","lat":41.0254,"lon":28.8893,"tst":1791814780,"acc":11,"tid":"FZ"}'
