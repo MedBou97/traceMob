@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { dbPlugin } from "./plugins/db.js";
 import { env } from "./config/env.js";
+import { locationRoutes } from "./modules/location/routes.js";
 
 
 export function buildApp() {
@@ -20,6 +21,7 @@ export function buildApp() {
   });
 
   app.register(dbPlugin);
+  app.register(locationRoutes, { prefix: "/api" });
 
 
   return app;
