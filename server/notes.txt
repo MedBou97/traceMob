@@ -20,6 +20,10 @@ ALTER DATABASE tracemob SET timezone TO 'Europe/Istanbul';
 docker start/stop tracemob-db
 
 
+-- starting the cloudflare tunnel
+cloudflared tunnel --url http://localhost:3000
+
+
 -- send an ingest request 
 curl -X POST http://localhost:3000/api/location \
   -H "Content-Type: application/json" \
