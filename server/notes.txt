@@ -31,3 +31,11 @@ cloudflared tunnel --url http://localhost:3000
 curl -X POST http://localhost:3000/api/location \
   -H "Content-Type: application/json" \
   -d '{"_type":"location","lat":41.0254,"lon":28.8893,"tst":1791814780,"acc":11,"tid":"FZ"}'
+
+
+
+  -- access the vps 
+ssh ubuntu@84.8.254.107
+
+-- access database from either with docker (container name) or docker compose (service name)
+docker compose 
