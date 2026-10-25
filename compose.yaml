@@ -1,6 +1,23 @@
+version: '3.8'
+
 services:
+  caddy:
+    image: caddy:latest
+    container_name: tracemob-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
   db:
     image: mobilitydb/mobilitydb:latest
+    container_name: tracemob-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
@@ -23,6 +40,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    container_name: tracemob-api
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -33,9 +51,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      # - "${API_BIND_ADDRESS:-127.0.0.1}:3000:3000"
-      - "0.0.0.0:3000:3000"
+    expose:
+      - "3000"
 
 volumes:
   mobilitydb_data:
+  caddy_data:
+  caddy_config:
