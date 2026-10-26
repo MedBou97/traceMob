@@ -24,6 +24,7 @@ docker start/stop tracemob-db
 
 
 -- starting the cloudflare tunnel
+-- the API is bound to localhost:3000 by docker compose
 cloudflared tunnel --url http://localhost:3000
 
 

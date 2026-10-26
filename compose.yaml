@@ -66,6 +66,8 @@ services:
         condition: service_healthy
       gps-worker:
         condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
     expose:
       - "3000"
 
