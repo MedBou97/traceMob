@@ -1,12 +1,12 @@
 # Deploy TraceMob API and MobilityDB on an Oracle Cloud VPS
 
-This deploys the Fastify API and the MobilityDB/PostgreSQL database with Docker Compose. The database is private to the Compose network and persisted in a named volume. The React client is not included.
+This deploys Caddy, the Fastify API, a GPS worker, Mosquitto, and the MobilityDB/PostgreSQL database with Docker Compose. The API publishes OwnTracks locations to Mosquitto; the worker consumes them and writes them to the database. The broker and database are private to the Compose network and persisted in named volumes. The React client is not included.
 
 ## Before deploying
 
-The API currently accepts location uploads without authentication, and the direct-IP setup below uses plain HTTP. Do not expose it to the public internet or send real location data until you add authentication and HTTPS. For a temporary test, leave the API bound to loopback and use an SSH tunnel or Cloudflare Tunnel. The database port is never published.
+The API currently accepts location uploads without authentication. Keep it behind Caddy with HTTPS and add authentication before sending real location data. The API, MQTT broker, and database are not published directly; only Caddy's HTTP/HTTPS ports are exposed. Mosquitto allows anonymous clients on the private Compose network, so do not publish port 1883 or attach untrusted containers to that network.
 
-The database initializer creates the `raw_locations` table used by the API. Docker runs it only when the database volume is initialized for the first time.
+The database initializer creates the `raw_locations` table used by the GPS worker. Docker runs it only when the database volume is initialized for the first time. Mosquitto persists queued messages in its named volume; the worker uses QoS 1 and idempotent inserts.
 
 ## 1. Prepare the Oracle Cloud instance
 
@@ -35,7 +35,7 @@ cd traceMob
 cp .env.example .env
 ```
 
-Edit `.env`, replace `POSTGRES_PASSWORD` with a unique secret, and keep the default `API_BIND_ADDRESS=127.0.0.1` for the initial deployment. A URI-safe random password can be generated with:
+Edit `.env` and replace `POSTGRES_PASSWORD` with a unique secret. A URI-safe random password can be generated with:
 
 ```sh
 openssl rand -hex 32
@@ -48,10 +48,10 @@ The value of `POSTGRES_DB` should remain `tracemob` unless you also update `data
 ```sh
 docker compose up -d --build
 docker compose ps
-docker compose logs --tail=100 api db
+docker compose logs --tail=100 api gps-worker mqtt db
 ```
 
-The API listens on port 3000 inside the container. By default, Compose publishes it only on the VPS loopback interface, so the API port does not need an Oracle ingress rule and the database is not publicly reachable.
+OwnTracks should continue posting to `https://tracemob.duckdns.org/api/location`. Caddy proxies requests to the API. Only ports 80 and 443 need inbound firewall rules; the API, MQTT broker, and database do not need public ports.
 
 ## 4. Move existing location rows (optional)
 
@@ -73,48 +73,24 @@ rm raw_locations-data.sql
 
 This imports the `raw_locations` table data into the matching schema created by `database/init.sql`; it does not migrate any other tables.
 
-To test from your computer without exposing port 3000, open an SSH tunnel:
+After DNS points to the VPS and Caddy has obtained its TLS certificate, send a test location through the HTTPS endpoint:
 
 ```sh
-ssh -L 3000:127.0.0.1:3000 ubuntu@YOUR_PUBLIC_IP
-```
-
-In another terminal, send a test location through the tunnel:
-
-```sh
-curl -i -X POST http://localhost:3000/api/location \
+curl -i -X POST https://tracemob.duckdns.org/api/location \
   -H 'Content-Type: application/json' \
   -d '{"_type":"location","lat":41.0254,"lon":28.8893,"tst":1791814780,"acc":11,"tid":"FZ"}'
 ```
 
-A successful request returns HTTP 200 with an empty JSON array. Use test coordinates until you have secured the endpoint.
+A successful request returns HTTP 200 with an empty JSON array once the broker accepts the message. The GPS worker inserts it asynchronously. Use test coordinates until you have secured the endpoint.
 
-## 5. Public-IP access (not secure for real location data)
+## 5. Updating and backing up
 
-To make the API directly reachable as `http://YOUR_PUBLIC_IP:3000`, change `API_BIND_ADDRESS` in `.env` to `0.0.0.0`, then recreate the API:
-
-```sh
-docker compose up -d --force-recreate api
-```
-
-Allow inbound TCP 3000 in both the Oracle Cloud Network Security Group/security list and (if enabled) the VPS firewall, then check `http://YOUR_PUBLIC_IP:3000`. Do not expose this unauthenticated HTTP endpoint for real use: request data and credentials are not encrypted, and anyone who can reach it can submit location records.
-
-For a temporary encrypted public URL without opening port 3000, keep loopback binding and run Cloudflare Tunnel on the VPS:
-
-```sh
-cloudflared tunnel --url http://localhost:3000
-```
-
-For a durable production deployment, use a domain with HTTPS and add authentication before making location ingestion public.
-
-## 6. Updating and backing up
-
-Pull changes and rebuild/restart the API:
+Pull changes and rebuild/restart the services:
 
 ```sh
 git pull
 docker compose up -d --build
-docker compose logs --tail=100 api
+docker compose logs --tail=100 api gps-worker mqtt
 ```
 
 Back up the database before destructive changes. To create a logical backup:

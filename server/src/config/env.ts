@@ -13,7 +13,8 @@ const EnvSchema = Type.Object({
   PORT: Type.String({ minLength: 1 }),
   HOST: Type.String({ minLength: 1 }),
   CORS_ORIGIN: Type.String({ minLength: 1 }),
-  DATABASE_URL: Type.String()
+  DATABASE_URL: Type.Optional(Type.String({ minLength: 1 })),
+  MQTT_URL: Type.String({ minLength: 1 })
 });
 
 type Env = Static<typeof EnvSchema>;
@@ -25,7 +26,8 @@ function readEnv(): Env {
     HOST: process.env.HOST ?? "0.0.0.0",
     CORS_ORIGIN:
       process.env.CORS_ORIGIN ?? "http://localhost:5173,http://127.0.0.1:5173",
-    DATABASE_URL: process.env.DATABASE_URL ?? ""
+    DATABASE_URL: process.env.DATABASE_URL,
+    MQTT_URL: process.env.MQTT_URL ?? "mqtt://localhost:1883"
   };
 
   if (!Value.Check(EnvSchema, raw)) {

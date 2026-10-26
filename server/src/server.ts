@@ -7,8 +7,6 @@ async function main() {
   try {
     await app.ready(); // initialize Fastify plugins
 
-    await app.db?.query("SELECT 1"); // Test database connection
-    console.log("Database connected");
     await app.listen({
       host: env.HOST,
       port: Number(env.PORT),

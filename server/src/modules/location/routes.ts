@@ -4,9 +4,7 @@ import {
   LocationAcceptedSchema,
   OwnTracksLocationSchema,
 } from "./schema.js";
-
-import { ingestOwnTracksLocation } from "./services.js";
-
+import { enqueueOwnTracksLocation } from "./services.js";
 
 export const locationRoutes: FastifyPluginAsyncTypebox = async (app) => {
   app.post(
@@ -17,22 +15,18 @@ export const locationRoutes: FastifyPluginAsyncTypebox = async (app) => {
         response: {
           200: LocationAcceptedSchema,
           400: IngestionErrorSchema,
-          500: IngestionErrorSchema,
+          503: IngestionErrorSchema
         },
       },
     },
     async (request, reply) => {
-      const result = await ingestOwnTracksLocation(app.db, request.body);
-
-      if (result.status === "database-unavailable") {
-        return reply.status(500).send({ error: "Database is unavailable" });
+      try {
+        await enqueueOwnTracksLocation(app.mqtt, request.body);
+      } catch (error) {
+        app.log.error(error);
+        return reply.status(503).send({ error: "Location queue is unavailable" });
       }
 
-      if (result.status === "database-error") {
-        app.log.error(result.error);
-        return reply.status(500).send({ error: "Database insert failed" });
-      }
-      
       // OwnTracks expects an empty array as a response for valid ingestion
       return reply.status(200).send([]);
     },
