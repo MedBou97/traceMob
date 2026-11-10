@@ -23,15 +23,26 @@ CREATE INDEX IF NOT EXISTS raw_locations_recorded_at_idx
     ON raw_locations (recorded_at);
 
 CREATE OR REPLACE VIEW v_user_trajectories AS
+WITH per_timestamp AS (
+    SELECT
+        user_id,
+        date_trunc('day', recorded_at) AS trip_day,
+        recorded_at,
+        (array_agg(geom ORDER BY accuracy, id))[1] AS geom,
+        count(*) AS timestamp_ping_count
+    FROM raw_locations
+    GROUP BY user_id, date_trunc('day', recorded_at), recorded_at
+)
 SELECT
     user_id,
-    date_trunc('day', recorded_at) AS trip_day,
+    trip_day,
     tgeompointseq(
         array_agg(tgeompoint(geom, recorded_at) ORDER BY recorded_at)
     ) AS trajectory,
-    count(*) AS ping_count,
+    sum(timestamp_ping_count)::bigint AS ping_count,
     min(recorded_at) AS start_time,
     max(recorded_at) AS end_time
-FROM raw_locations
-GROUP BY user_id, date_trunc('day', recorded_at)
-HAVING count(*) > 1;
+FROM per_timestamp
+GROUP BY user_id, trip_day
+HAVING sum(timestamp_ping_count) > 1
+   AND count(*) > 1;
