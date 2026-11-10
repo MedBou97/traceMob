@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { MqttClient } from "mqtt";
-import type { OwnTracksLocation } from "./schema.js";
-import { LOCATION_TOPIC } from "./queue.js";
+import { LOCATION_TOPIC, OwnTracksLocation } from "./schema.js";
 
 export async function enqueueOwnTracksLocation(
   mqtt: MqttClient,

@@ -6,7 +6,7 @@ import { env } from "./config/env.js";
 import {
   LOCATION_TOPIC,
   QueuedLocationSchema,
-} from "./modules/location/queue.js";
+} from "./modules/location/schema.js";
 
 async function main() {
   if (!env.DATABASE_URL) {
