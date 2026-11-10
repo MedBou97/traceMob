@@ -8,10 +8,17 @@ import type {
   TripSummary,
   UserSummary
 } from "./schema.js";
-import { analyticsSql } from "./sql.js";
+import {
+  coPresenceSql,
+  dwellPointsSql,
+  listUserTripsSql,
+  listUsersSql,
+  playbackSql,
+  speedProfileSql
+} from "./sql.js";
 
 export async function listUsers(db: Pool): Promise<UserSummary[]> {
-  const { rows } = await db.query<UserSummary>(analyticsSql.users);
+  const { rows } = await db.query<UserSummary>(listUsersSql);
   return rows;
 }
 
@@ -19,7 +26,7 @@ export async function listUserTrips(
   db: Pool,
   userId: string
 ): Promise<TripSummary[]> {
-  const { rows } = await db.query<TripSummary>(analyticsSql.trips, [userId]);
+  const { rows } = await db.query<TripSummary>(listUserTripsSql, [userId]);
   return rows;
 }
 
@@ -28,7 +35,7 @@ export async function getSpeedProfile(
   userId: string,
   query: DateQuery
 ): Promise<SpeedSegment[]> {
-  const { rows } = await db.query<SpeedSegment>(analyticsSql.speedProfile, [
+  const { rows } = await db.query<SpeedSegment>(speedProfileSql, [
     userId,
     query.date ?? null
   ]);
@@ -40,7 +47,7 @@ export async function getCoPresence(
   timestamp: string,
   radius: number
 ): Promise<CoPresence[]> {
-  const { rows } = await db.query<CoPresence>(analyticsSql.coPresence, [
+  const { rows } = await db.query<CoPresence>(coPresenceSql, [
     timestamp,
     radius
   ]);
@@ -54,7 +61,7 @@ export async function getPlayback(
   end: string,
   step: number
 ): Promise<PlaybackPoint[]> {
-  const { rows } = await db.query<PlaybackPoint>(analyticsSql.playback, [
+  const { rows } = await db.query<PlaybackPoint>(playbackSql, [
     userId,
     start,
     end,
@@ -69,7 +76,7 @@ export async function getDwellPoints(
   eps: number,
   minMinutes: number
 ): Promise<DwellPoint[]> {
-  const { rows } = await db.query<DwellPoint>(analyticsSql.dwellPoints, [
+  const { rows } = await db.query<DwellPoint>(dwellPointsSql, [
     userId,
     eps,
     minMinutes

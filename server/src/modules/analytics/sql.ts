@@ -1,14 +1,13 @@
-export const analyticsSql = {
-  users: `SELECT
+export const listUsersSql = `SELECT
     user_id,
     count(*)::int AS total_points,
     min(recorded_at) AS first_seen,
     max(recorded_at) AS last_seen
   FROM raw_locations
   GROUP BY user_id
-  ORDER BY last_seen DESC`,
+  ORDER BY last_seen DESC`;
 
-  trips: `SELECT
+export const listUserTripsSql = `SELECT
     trip_day,
     start_time,
     end_time,
@@ -19,9 +18,9 @@ export const analyticsSql = {
     ST_AsGeoJSON(trajectory(v.trajectory, true))::json AS geojson
   FROM v_user_trajectories AS v
   WHERE user_id = $1
-  ORDER BY start_time DESC`,
+  ORDER BY start_time DESC`;
 
-  speedProfile: `WITH points AS (
+export const speedProfileSql = `WITH points AS (
     SELECT
       geom,
       recorded_at,
@@ -64,9 +63,9 @@ export const analyticsSql = {
     END AS transport_mode,
     ST_AsGeoJSON(segment_geom)::json AS geojson
   FROM segments
-  ORDER BY segment_start`,
+  ORDER BY segment_start`;
 
-  coPresence: `WITH user_positions AS (
+export const coPresenceSql = `WITH user_positions AS (
     SELECT
       user_id,
       valueAtTimestamp(trajectory, $1::timestamptz) AS current_geom
@@ -87,9 +86,9 @@ export const analyticsSql = {
   LEFT JOIN user_positions AS b
     ON a.user_id < b.user_id
     AND ST_DWithin(a.current_geom::geography, b.current_geom::geography, $2)
-  ORDER BY a.user_id, b.user_id`,
+  ORDER BY a.user_id, b.user_id`;
 
-  playback: `WITH time_series AS (
+export const playbackSql = `WITH time_series AS (
     SELECT generate_series(
       $2::timestamptz,
       $3::timestamptz,
@@ -116,9 +115,9 @@ export const analyticsSql = {
     ST_AsGeoJSON(geom)::json AS point_geojson
   FROM interpolated
   WHERE geom IS NOT NULL
-  ORDER BY timestamp ASC`,
+  ORDER BY timestamp ASC`;
 
-  dwellPoints: `WITH stationary_points AS (
+export const dwellPointsSql = `WITH stationary_points AS (
     SELECT geom, recorded_at
     FROM raw_locations
     WHERE user_id = $1
@@ -156,5 +155,4 @@ export const analyticsSql = {
     point_count,
     ST_AsGeoJSON(dwell_geom)::json AS geojson
   FROM dwells
-  ORDER BY arrived_at DESC`
-} as const;
+  ORDER BY arrived_at DESC`;
