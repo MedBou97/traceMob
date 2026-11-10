@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS mobilitydb;
 
 ALTER DATABASE tracemob SET timezone TO 'Europe/Istanbul';
 
@@ -20,3 +21,17 @@ CREATE INDEX IF NOT EXISTS raw_locations_geom_idx
 
 CREATE INDEX IF NOT EXISTS raw_locations_recorded_at_idx
     ON raw_locations (recorded_at);
+
+CREATE OR REPLACE VIEW v_user_trajectories AS
+SELECT
+    user_id,
+    date_trunc('day', recorded_at) AS trip_day,
+    tgeompointseq(
+        array_agg(tgeompoint(geom, recorded_at) ORDER BY recorded_at)
+    ) AS trajectory,
+    count(*) AS ping_count,
+    min(recorded_at) AS start_time,
+    max(recorded_at) AS end_time
+FROM raw_locations
+GROUP BY user_id, date_trunc('day', recorded_at)
+HAVING count(*) > 1;
