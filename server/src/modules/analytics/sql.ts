@@ -107,7 +107,7 @@ FROM calculated
 ORDER BY segment_start;
 `;
 
-/** Only returns nearby user pairs, not unmatched users. */
+/* returns user at a specific timestamp and nearby users if there are any within the given radius */
 export const coPresenceSql = `
 WITH positions AS (
   SELECT
