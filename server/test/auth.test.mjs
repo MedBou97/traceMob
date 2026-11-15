@@ -12,8 +12,9 @@ process.env.NODE_ENV = "production";
 process.env.JWT_SECRET = "test-only-signing-secret-that-is-long-enough";
 process.env.AUTH_USERS_JSON = JSON.stringify([{ username: "alice", passwordHash }]);
 
-const [{ authRoutes, requireAuth }, { analyticsRoutes }] = await Promise.all([
+const [{ authRoutes }, { requireAuth }, { analyticsRoutes }] = await Promise.all([
   import("../dist/modules/auth/routes.js"),
+  import("../dist/modules/auth/services.js"),
   import("../dist/modules/analytics/routes.js"),
 ]);
 

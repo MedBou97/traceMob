@@ -8,7 +8,8 @@ import {dbPlugin} from "./plugins/db.js";
 import { env } from "./config/env.js";
 import { locationRoutes } from "./modules/location/routes.js";
 import { analyticsRoutes } from "./modules/analytics/routes.js";
-import { authRoutes, requireAuth } from "./modules/auth/routes.js";
+import { authRoutes } from "./modules/auth/routes.js";
+import { requireAuth } from "./modules/auth/services.js";
 
 export function buildApp() {
   const corsOrigins = env.CORS_ORIGIN.split(",")
