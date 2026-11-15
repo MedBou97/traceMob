@@ -46,17 +46,18 @@ function parseAuthUsers(value?: string): AuthUser[] {
     throw new Error("AUTH_USERS_JSON must be valid JSON");
   }
 
-  if (!Value.Check(AuthUsersSchema, parsed)) {
+  const users = Array.isArray(parsed) ? parsed : [parsed];
+  if (!Value.Check(AuthUsersSchema, users)) {
     throw new Error("AUTH_USERS_JSON must contain one or two valid users");
   }
-  if (new Set(parsed.map((user) => user.username)).size !== parsed.length) {
+  if (new Set(users.map((user) => user.username)).size !== users.length) {
     throw new Error("AUTH_USERS_JSON usernames must be unique");
   }
 
-  return parsed;
+  return users;
 }
 
-function readEnv(): Env & { JWT_SECRET: string; authUsers: AuthUser[] } {
+function readEnv(): Env & { authUsers: AuthUser[] } {
   const raw = {
     NODE_ENV: process.env.NODE_ENV ?? "development",
     PORT: process.env.PORT ?? "3000",
@@ -73,19 +74,21 @@ function readEnv(): Env & { JWT_SECRET: string; authUsers: AuthUser[] } {
     throw new Error("Invalid environment configuration");
   }
 
-  if (raw.NODE_ENV === "production" && !raw.JWT_SECRET) {
+  const authUsers = parseAuthUsers(raw.AUTH_USERS_JSON);
+  return { ...raw, authUsers };
+}
+
+export const env = readEnv();
+
+export function getAuthConfig(): { jwtSecret: string } {
+  if (env.NODE_ENV === "production" && !env.JWT_SECRET) {
     throw new Error("JWT_SECRET must be set in production");
   }
-  const authUsers = parseAuthUsers(raw.AUTH_USERS_JSON);
-  if (raw.NODE_ENV === "production" && authUsers.length === 0) {
+  if (env.NODE_ENV === "production" && env.authUsers.length === 0) {
     throw new Error("AUTH_USERS_JSON must be set in production");
   }
 
   return {
-    ...raw,
-    JWT_SECRET: raw.JWT_SECRET ?? randomBytes(32).toString("hex"),
-    authUsers
+    jwtSecret: env.JWT_SECRET ?? randomBytes(32).toString("hex")
   };
 }
-
-export const env = readEnv();

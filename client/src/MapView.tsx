@@ -6,7 +6,9 @@ import {
   Popup,
   type GeoJSONSource,
   type StyleSpecification,
+  setWorkerUrl,
 } from 'maplibre-gl'
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import type { FeatureCollection, Geometry } from 'geojson'
 
 type MapFeature = FeatureCollection<Geometry, Record<string, string | number | null>>
@@ -78,6 +80,7 @@ export function MapView({ data, fitKey }: MapViewProps) {
   useEffect(() => {
     if (!containerRef.current) return
 
+    setWorkerUrl(mapLibreWorkerUrl)
     const map = new MapLibreMap({
       container: containerRef.current,
       style: mapStyle,
@@ -166,5 +169,5 @@ export function MapView({ data, fitKey }: MapViewProps) {
     if (map?.getSource('trace-data')) fitData(map, latestDataRef.current)
   }, [fitKey])
 
-  return <div className="absolute inset-0" ref={containerRef} aria-label="Location map" />
+  return <div className="h-full w-full" ref={containerRef} aria-label="Location map" />
 }
