@@ -1,12 +1,14 @@
-# Deploy TraceMob API and MobilityDB on an Oracle Cloud VPS
+# Deploy TraceMob on an Oracle Cloud VPS
 
-This deploys Caddy, the Fastify API, a GPS worker, Mosquitto, and the MobilityDB/PostgreSQL database with Docker Compose. The API publishes OwnTracks locations to Mosquitto; the worker consumes them and writes them to the database. The broker and database are private to the Compose network and persisted in named volumes. The React client is not included.
+This deploys the MapLibre web client, Caddy, the Fastify API, a GPS worker, Mosquitto, and the MobilityDB/PostgreSQL database with Docker Compose. Caddy serves the client and proxies `/api/*` to the API. The API publishes OwnTracks locations to Mosquitto; the worker consumes them and writes them to the database. The broker and database are private to the Compose network and persisted in named volumes.
 
 ## Before deploying
 
-The API currently accepts location uploads without authentication. Keep it behind Caddy with HTTPS and add authentication before sending real location data. The API, MQTT broker, and database are not published directly; only Caddy's HTTP/HTTPS ports are exposed. Mosquitto allows anonymous clients on the private Compose network, so do not publish port 1883 or attach untrusted containers to that network.
+The map and analytics APIs use JWT sessions in HttpOnly, Secure, SameSite cookies. Configure one or two accounts and a random JWT signing secret in `.env`; there is no registration flow. `POST /api/location` remains unauthenticated for OwnTracks compatibility, so keep it behind Caddy with HTTPS. The API, client, MQTT broker, and database are not published directly; only Caddy's HTTP/HTTPS ports are exposed. Mosquitto allows anonymous clients on the private Compose network, so do not publish port 1883 or attach untrusted containers to that network.
 
 The database initializer creates the `raw_locations` table used by the GPS worker. Docker runs it only when the database volume is initialized for the first time. Mosquitto persists queued messages in its named volume; the worker uses QoS 1 and idempotent inserts.
+
+The map uses OpenStreetMap raster tiles and displays attribution. Follow the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/); for heavier or commercial use, configure a suitable tile provider.
 
 ## 1. Prepare the Oracle Cloud instance
 
@@ -35,13 +37,27 @@ cd traceMob
 cp .env.example .env
 ```
 
-Edit `.env` and replace `POSTGRES_PASSWORD` with a unique secret. A URI-safe random password can be generated with:
+Edit `.env` and replace `POSTGRES_PASSWORD` and `JWT_SECRET` with unique secrets. Generate them with:
 
 ```sh
 openssl rand -hex 32
 ```
 
-The value of `POSTGRES_DB` should remain `tracemob` unless you also update `database/init.sql`. Protect `.env` and do not commit it.
+Generate password hashes for the account(s) by entering each password on standard input. For example:
+
+```sh
+read -r -s -p "Password for alice: " PASSWORD; printf '\n'
+HASH_ALICE="$(printf '%s' "$PASSWORD" | docker run --rm -i -v "$PWD/server:/app" -w /app node:22-alpine node scripts/hash-password.mjs alice)"
+unset PASSWORD
+```
+
+Repeat with a different username for the second account if needed. Set `AUTH_USERS_JSON` in `.env` to a JSON array containing the generated objects, for example:
+
+```text
+AUTH_USERS_JSON=[{"username":"alice","passwordHash":"scrypt:<salt>:<key>"},{"username":"bob","passwordHash":"scrypt:<salt>:<key>"}]
+```
+
+Replace the example salts and keys with the complete values printed by the helper. `POSTGRES_DB` should remain `tracemob` unless you also update `database/init.sql`. Protect `.env` and do not commit it.
 
 ## 3. Start the services
 
@@ -51,7 +67,7 @@ docker compose ps
 docker compose logs --tail=100 api gps-worker mqtt db
 ```
 
-OwnTracks should continue posting to `https://tracemob.duckdns.org/api/location`. Caddy proxies requests to the API. Only ports 80 and 443 need inbound firewall rules; the API, MQTT broker, and database do not need public ports.
+Open `https://tracemob.duckdns.org` to sign in and use the map. OwnTracks should continue posting to `https://tracemob.duckdns.org/api/location`. Caddy serves the client at `/` and proxies API requests to the server. Only ports 80 and 443 need inbound firewall rules; the client, API, MQTT broker, and database do not need public ports.
 
 ## 4. Move existing location rows (optional)
 
@@ -73,7 +89,7 @@ rm raw_locations-data.sql
 
 This imports the `raw_locations` table data into the matching schema created by `database/init.sql`; it does not migrate any other tables.
 
-After DNS points to the VPS and Caddy has obtained its TLS certificate, send a test location through the HTTPS endpoint:
+After DNS points to the VPS and Caddy has obtained its TLS certificate, send a test location through the HTTPS ingestion endpoint:
 
 ```sh
 curl -i -X POST https://tracemob.duckdns.org/api/location \
@@ -81,7 +97,7 @@ curl -i -X POST https://tracemob.duckdns.org/api/location \
   -d '{"_type":"location","lat":41.0254,"lon":28.8893,"tst":1791814780,"acc":11,"tid":"FZ"}'
 ```
 
-A successful request returns HTTP 200 with an empty JSON array once the broker accepts the message. The GPS worker inserts it asynchronously. Use test coordinates until you have secured the endpoint.
+A successful request returns HTTP 200 with an empty JSON array once the broker accepts the message. The GPS worker inserts it asynchronously. Use test coordinates when verifying ingestion.
 
 ## 5. Updating and backing up
 
