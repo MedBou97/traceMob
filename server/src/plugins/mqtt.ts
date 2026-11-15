@@ -11,6 +11,8 @@ export const mqttPlugin: FastifyPluginAsync = fp(async (app) => {
     reconnectPeriod: 1000
   });
 
+  console.log("MQTT connected");
+  
   client.on("error", (error) => {
     app.log.error(error, "MQTT connection error");
   });

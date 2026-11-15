@@ -18,3 +18,13 @@ export const LocationAcceptedSchema = Type.Array(Type.Any(), { minItems: 0, maxI
 export const IngestionErrorSchema = Type.Object({
 	error: Type.String()
 });
+
+// this is the schema of the message that is queued in mqtt, which adds an Id to the OwnTracksLocation
+export const LOCATION_TOPIC = "tracemob/location";
+
+export const QueuedLocationSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  location: OwnTracksLocationSchema
+});
+
+export type QueuedLocation = Static<typeof QueuedLocationSchema>;

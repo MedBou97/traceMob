@@ -1,3 +1,9 @@
 tracemob.duckdns.org {
-    reverse_proxy api:3000
+    @api path /api/*
+    handle @api {
+        reverse_proxy api:3000
+    }
+    handle {
+        reverse_proxy client:80
+    }
 }
