@@ -3,6 +3,7 @@ import type {
   CoPresence,
   DateQuery,
   DwellPoint,
+  LatestPosition,
   PlaybackPoint,
   SpeedSegment,
   TripSummary,
@@ -11,6 +12,7 @@ import type {
 import {
   coPresenceSql,
   dwellPointsSql,
+  latestPositionsSql,
   listUserTripsSql,
   listUsersSql,
   playbackSql,
@@ -19,6 +21,11 @@ import {
 
 export async function listUsers(db: Pool): Promise<UserSummary[]> {
   const { rows } = await db.query<UserSummary>(listUsersSql);
+  return rows;
+}
+
+export async function listLatestPositions(db: Pool): Promise<LatestPosition[]> {
+  const { rows } = await db.query<LatestPosition>(latestPositionsSql);
   return rows;
 }
 

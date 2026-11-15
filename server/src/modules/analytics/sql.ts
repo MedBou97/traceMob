@@ -18,6 +18,17 @@ GROUP BY user_id
 ORDER BY last_seen DESC;
 `;
 
+export const latestPositionsSql = `
+SELECT DISTINCT ON (user_id)
+  user_id,
+  latitude,
+  longitude,
+  recorded_at,
+  accuracy
+FROM raw_locations
+ORDER BY user_id, recorded_at DESC, accuracy ASC, id ASC;
+`;
+
 /** One row per user/day, as defined by v_user_trajectories. */
 export const listUserTripsSql = `
 SELECT

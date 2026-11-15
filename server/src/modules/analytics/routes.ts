@@ -20,6 +20,7 @@ import {
   getDwellPoints,
   getPlayback,
   getSpeedProfile,
+  listLatestPositions,
   listUserTrips,
   listUsers
 } from "./services.js";
@@ -40,6 +41,24 @@ export const analyticsRoutes: FastifyPluginAsyncTypebox = async (app) => {
         return reply.status(503).send({ error: "Database is unavailable" });
       }
       return listUsers(app.db);
+    }
+  );
+
+  app.get(
+    "/users/latest",
+    {
+      schema: {
+        response: {
+          200: AnalyticsArrayResponseSchema,
+          503: ErrorSchema
+        }
+      }
+    },
+    async (_request, reply) => {
+      if (!app.db) {
+        return reply.status(503).send({ error: "Database is unavailable" });
+      }
+      return listLatestPositions(app.db);
     }
   );
 

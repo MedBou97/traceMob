@@ -37,6 +37,14 @@ export interface UserSummary extends QueryResultRow {
   last_seen: Date;
 }
 
+export interface LatestPosition extends QueryResultRow {
+  user_id: string;
+  latitude: number;
+  longitude: number;
+  recorded_at: Date;
+  accuracy: number;
+}
+
 export interface TripSummary extends QueryResultRow {
   trip_day: Date;
   start_time: Date;
